@@ -18,7 +18,7 @@ exporters:
 
   # https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlphttpexporter
   otlphttp:
-    endpoint: ${ENDPOINT}:4318
+    endpoint: ${ENDPOINT}:443
     timeout: 10s
     # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md
     retry_on_failure:
@@ -29,7 +29,7 @@ exporters:
 
   # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/otlpexporter/README.md
   otlp:
-    endpoint: ${ENDPOINT}:4318
+    endpoint: ${ENDPOINT}:443
     compression: none
     timeout: 10s
     # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md
@@ -61,14 +61,15 @@ extensions:
 service:
   extensions: [pprof, health_check, zpages]
   pipelines:
-    # traces:
-    #   receivers: [otlp]
-    #   # processors: [batch]
-    #   exporters: [otlphttp, otlp, otlp/2]
-    # metrics:
-    #   receivers: [otlp]
-    #   # processors: [batch]
-    #   exporters: [otlphttp, otlp, otlp/2]
+    traces:
+      receivers: [otlp]
+      # processors: [batch]
+      exporters: [otlphttp, logging]
+    metrics:
+      receivers: [otlp]
+      # processors: [batch]
+      exporters: [otlphttp, logging]
+
     logs:
       receivers: [otlp]
       # processors: [batch]
