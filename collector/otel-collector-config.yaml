@@ -1,0 +1,76 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+  # otlp/2:
+  #   protocols:
+  #     grpc:
+  #       endpoint: 0.0.0.0:55690
+
+exporters:
+  # local only
+  # logging:
+  #   verbosity: detailed
+  #   sampling_initial: 5
+  #   sampling_thereafter: 200
+
+  # https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlphttpexporter
+  otlphttp:
+    endpoint: ${ENDPOINT}:4318
+    timeout: 10s
+    # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md
+    retry_on_failure:
+      enabled: true
+      initial_interval: 10s
+      max_interval: 60s
+      max_elapsed_time: 10m
+
+  # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/otlpexporter/README.md
+  otlp:
+    endpoint: ${ENDPOINT}:4318
+    compression: none
+    timeout: 10s
+    # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md
+    retry_on_failure:
+      enabled: true
+      initial_interval: 10s
+      max_interval: 60s
+      max_elapsed_time: 10m
+
+  otlp/2:
+    endpoint: ${ENDPOINT}:4318
+    compression: none
+    timeout: 10s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 10s
+      max_interval: 60s
+      max_elapsed_time: 10m
+    tls:
+      insecure: true
+
+extensions:
+  health_check:
+  pprof:
+    endpoint: :1888
+
+service:
+  extensions: [pprof, health_check]
+  pipelines:
+    # traces:
+    #   receivers: [otlp]
+    #   # processors: [batch]
+    #   exporters: [otlphttp, otlp, otlp/2]
+    # metrics:
+    #   receivers: [otlp]
+    #   # processors: [batch]
+    #   exporters: [otlphttp, otlp, otlp/2]
+    logs:
+      receivers: [otlp]
+      # processors: [batch]
+      exporters: [otlphttp]
+    # logging:
+    #   receivers: [otlp]
+    #   processors: [batch]
+    #   exporters: [otlphttp, otlp, otlp/2]
