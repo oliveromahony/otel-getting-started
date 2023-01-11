@@ -1,3 +1,4 @@
+# https://github.com/open-telemetry/opentelemetry-collector/blob/main/receiver/otlpreceiver/README.md
 receivers:
   otlp:
     protocols:
@@ -10,10 +11,10 @@ receivers:
 
 exporters:
   # local only
-  # logging:
-  #   verbosity: detailed
-  #   sampling_initial: 5
-  #   sampling_thereafter: 200
+  logging:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
 
   # https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlphttpexporter
   otlphttp:
@@ -54,9 +55,11 @@ extensions:
   health_check:
   pprof:
     endpoint: :1888
+  zpages:
+    endpoint: 0.0.0.0:55679
 
 service:
-  extensions: [pprof, health_check]
+  extensions: [pprof, health_check, zpages]
   pipelines:
     # traces:
     #   receivers: [otlp]
@@ -69,7 +72,7 @@ service:
     logs:
       receivers: [otlp]
       # processors: [batch]
-      exporters: [otlphttp]
+      exporters: [otlphttp, logging]
     # logging:
     #   receivers: [otlp]
     #   processors: [batch]
