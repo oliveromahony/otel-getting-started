@@ -61,14 +61,14 @@ extensions:
 service:
   extensions: [pprof, health_check, zpages]
   pipelines:
-    traces:
-      receivers: [otlp]
-      # processors: [batch]
-      exporters: [otlphttp, logging]
-    metrics:
-      receivers: [otlp]
-      # processors: [batch]
-      exporters: [otlphttp, logging]
+    # traces:
+    #   receivers: [otlp]
+    #   # processors: [batch]
+    #   exporters: [otlphttp, logging]
+    # metrics:
+    #   receivers: [otlp]
+    #   # processors: [batch]
+    #   exporters: [otlphttp, logging]
 
     logs:
       receivers: [otlp]
