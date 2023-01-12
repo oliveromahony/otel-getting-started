@@ -2,13 +2,19 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log"
 	"math/rand"
 	"os"
 	"time"
 
+	"github.com/bombsimon/logrusr/v4"
+    // "github.com/go-logr/logr"
+	"github.com/sirupsen/logrus"
+
 	// "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"github.com/uptrace/opentelemetry-go-extra/otellogrus"
+	"github.com/uptrace/opentelemetry-go-extra/otelplay"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/baggage"
@@ -22,6 +28,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+
 	"google.golang.org/grpc"
 )
 
@@ -29,6 +36,9 @@ const SERVICE_NAME = "otel-test"
 
 func initProvider() func() {
 	ctx := context.Background()
+	// otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
+	// 	// ignore the error
+	// }))
 
 	res, err := resource.New(ctx,
 		resource.WithFromEnv(),
@@ -82,9 +92,29 @@ func initProvider() func() {
 		sdktrace.WithSpanProcessor(bsp),
 	)
 
+	// Instrument logrus.
+	logrus.AddHook(otellogrus.NewHook(otellogrus.WithLevels(
+		logrus.PanicLevel,
+		logrus.FatalLevel,
+		logrus.ErrorLevel,
+		logrus.WarnLevel,
+	)))
+
+	// Use ctx to pass the active span.
+	logrus.WithContext(ctx).
+		WithError(errors.New("hello world")).
+		WithField("foo", "bar").
+		Error("something failed")
+
 	// set global propagator to tracecontext (the default is no-op).
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	otel.SetTracerProvider(tracerProvider)
+
+	logrusLog := logrus.New()
+    log := logrusr.New(logrusLog)
+	log = log.WithName(SERVICE_NAME).WithValues("test", "otel")
+
+	otel.SetLogger(log)
 
 	return func() {
 		cxt, cancel := context.WithTimeout(ctx, time.Second)
@@ -104,7 +134,7 @@ func main() {
 	defer shutdown()
 
 	tracer := otel.Tracer(fmt.Sprintf("%s%s", SERVICE_NAME, "-client-tracer"))
-	
+
 	meter := global.Meter(fmt.Sprintf("%s%s", SERVICE_NAME, "-client-meter"))
 
 	method, _ := baggage.NewMember("method", "repl")
@@ -155,21 +185,21 @@ func main() {
 			randLineLength := rng.Int63n(999)
 			lineCounts.Add(ctx, 1, commonLabels...)
 			lineLengths.Record(ctx, randLineLength, commonLabels...)
-			fmt.Printf("#%d: LineLength: %dBy\n", i, randLineLength)
+			logrus.Warnf("#%d: LineLength: %dBy\n", i, randLineLength)
 		}
 
 		requestLatency.Record(ctx, latencyMs, commonLabels...)
 		requestCount.Add(ctx, 1, commonLabels...)
 
-		fmt.Printf("Latency: %.3fms\n", latencyMs)
+		logrus.Warnf("Latency: %.3fms\n", latencyMs)
+		otelplay.PrintTraceID(ctx)
 		time.Sleep(time.Duration(1) * time.Second)
 	}
 }
 
 func makeRequest(ctx context.Context) {
-	log.Println("test")
+	logrus.Warnf("test")
 }
-
 
 // func newExporter(ctx context.Context) (someExporter.Exporter, error) {
 // 	// Your preferred exporter: console, jaeger, zipkin, OTLP, etc.
@@ -184,7 +214,7 @@ func newTraceProvider(exp sdktrace.SpanExporter) *sdktrace.TracerProvider {
 			semconv.ServiceNameKey.String("ExampleService"),
 		),
 	)
-	
+
 	if err != nil {
 		panic(err)
 	}
@@ -197,6 +227,6 @@ func newTraceProvider(exp sdktrace.SpanExporter) *sdktrace.TracerProvider {
 
 func handleErr(err error, message string) {
 	if err != nil {
-		log.Fatalf("%s: %v", message, err)
+		logrus.Fatalf("%s: %v", message, err)
 	}
 }
