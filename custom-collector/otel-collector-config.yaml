@@ -1,0 +1,21 @@
+# https://github.com/open-telemetry/opentelemetry-collector/blob/main/receiver/otlpreceiver/README.md
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+exporters:
+  # local only
+  logging:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+service:
+  # extensions: [pprof, health_check, zpages]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      # processors: [batchprocessor]
+      exporters: [logging]
